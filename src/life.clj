@@ -1,20 +1,22 @@
 (ns life
-  (:import (javax.swing JFrame JPanel JButton JTextArea JLabel SwingUtilities JScrollPane)
+  (:import (javax.swing JFrame JPanel JButton JTextArea JLabel SwingUtilities JScrollPane WindowConstants)
 	   (java.awt Graphics BorderLayout FlowLayout Color Dimension)
-	   (java.awt.event MouseListener ActionListener MouseEvent MouseAdapter)))
+	   (java.awt.event MouseListener ActionListener MouseEvent MouseAdapter))
+  (:use [clojure.contrib.seq-utils :only (flatten)]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; World - board and aquares
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def *board-size* 25)
+(def *board-size* 5)
 (def *square-size* 20)
 
 (def *board* (ref (vec (repeat *board-size*
 			       (vec (repeat *board-size* false))))))
 
-(defn get-square [row col]
-  (get-in @*board* [row col]))
+(defn get-square
+  ([row col] (get-square @*board* row col))
+  ([board row col] (get-in board [row col])))
 
 (defn draw-board-square [#^Graphics g x y w h vl]
   (doto g
@@ -56,36 +58,41 @@
 (defn map-2d [fun arr]
   (let [rows (count arr)
 	cols (count (get arr 0))]
-    (loop [r 0
-	   c 0
-	   res arr]
+    (loop [r 0, c 0, res arr]
       (if (= r rows)
 	res
 	(if (= c cols)
 	  (recur (inc r) 0 res)
 	  (recur r (inc c) (assoc-in res [r c] (fun arr r c))))))))
 
+(defn subgrid
+  "x & y are top left coords, x+ & y+ are spans.
+Author: Michał Marczyk"
+  [g x y x+ y+]
+  (let [x-to (min (+ x x+) (count (g 0)))
+	y-to (min (+ y y+) (count g))
+	x-from (max 0 x)
+	y-from (max 0 y)]
+    (vec
+     (map #(subvec % x-from x-to)
+          (subvec g y-from y-to)))))
+
 (defn neighbours [board row col]
-  [(get-in board [(dec row) (dec col)])
-   (get-in board [(dec row) col])
-   (get-in board [(dec row) (inc col)])
-   (get-in board [row (dec col)])
-   (get-in board [row (inc col)]) 
-   (get-in board [(inc row) (dec col)])
-   (get-in board [(inc row) col])
-   (get-in board [(inc row) (inc col)])])
+  (-> board
+      (subgrid (dec col) (dec row) 3 3)
+      ; Here should be code do discount (row, col) square (it's not neighbour - it is myself)
+      flatten))
 
 (defn count-neighbours [board row col]
   (count (filter true? (neighbours board row col))))
 
 (defn gen-cell [board row col]
-  (let [around (count-neighbours board row col)
-	me (get-in board [row col])]
+  (let [nc (count-neighbours board row col)
+	me (get-square board row col)]
     (cond
-     (and (not me) (or (< around 2) (> around 3))) false
-     (and (not me) (= around 3)) true
-     (and me (or (= around 2) (= around 3))) true
-     :aotherwise false)))
+     (and (not me) (= nc 3)) true
+     (and me (or (= nc 2) (= nc 3))) true
+     true false)))
 
 (defn next-generation [board]
   (map-2d gen-cell board))
@@ -173,9 +180,9 @@
 (defn create-frame []
   (doto (JFrame. "Life Exersice")
     (.setContentPane (create-panel))
-    (.setSize 520 630)
+    (.setSize 750 850)
     (.setVisible true)
-    #_(.setDefaultCloseOperation JFrame/EXIT_ON_CLOSE)))
+    (.setDefaultCloseOperation WindowConstants/DISPOSE_ON_CLOSE)))
 
 (defn run-life []
   (SwingUtilities/invokeLater

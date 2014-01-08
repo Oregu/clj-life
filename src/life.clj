@@ -1,8 +1,7 @@
 (ns life
   (:import (javax.swing JFrame JPanel JButton JTextArea JLabel SwingUtilities JScrollPane WindowConstants)
 	   (java.awt Graphics BorderLayout FlowLayout Color Dimension)
-	   (java.awt.event MouseListener ActionListener MouseEvent MouseAdapter))
-  (:use [clojure.contrib.seq-utils :only (flatten)]))
+	   (java.awt.event MouseListener ActionListener MouseEvent MouseAdapter)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; World - board and aquares
@@ -184,7 +183,7 @@ Author: Michał Marczyk"
     (.setVisible true)
     (.setDefaultCloseOperation WindowConstants/DISPOSE_ON_CLOSE)))
 
-(defn run-life []
+(defn -main [& m]
   (SwingUtilities/invokeLater
    (proxy [Runnable] []
      (run []
